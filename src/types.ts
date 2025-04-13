@@ -46,3 +46,11 @@ export interface InterviewFeedback {
 export interface ApiKeySettings {
   groqApiKey: string;
 }
+
+// Add TypeScript declarations for Web Speech API
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}

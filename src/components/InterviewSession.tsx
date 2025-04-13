@@ -11,6 +11,7 @@ import { toast } from '@/components/ui/use-toast';
 import { useInterview } from '@/context/InterviewContext';
 import SpeechRecognition from './SpeechRecognition';
 import VideoRecorder from './VideoRecorder';
+import { speak, cancelSpeech } from '@/utils/textToSpeech';
 
 const InterviewSession: React.FC = () => {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ const InterviewSession: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isLiveRecording, setIsLiveRecording] = useState(false);
   
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -34,7 +36,22 @@ const InterviewSession: React.FC = () => {
 
   useEffect(() => {
     scrollToBottom();
+    
+    // Speak the last AI message if it exists
+    if (currentSession?.messages.length) {
+      const lastMessage = currentSession.messages[currentSession.messages.length - 1];
+      if (lastMessage.role === 'assistant') {
+        speak(lastMessage.content);
+      }
+    }
   }, [currentSession?.messages]);
+
+  // Stop speaking when the component unmounts
+  useEffect(() => {
+    return () => {
+      cancelSpeech();
+    };
+  }, []);
 
   const handleTranscript = (transcript: string) => {
     setInputValue(transcript);
@@ -52,6 +69,9 @@ const InterviewSession: React.FC = () => {
       return;
     }
 
+    // Cancel any ongoing speech before sending a new message
+    cancelSpeech();
+    
     addMessage(inputValue, 'user');
     setInputValue('');
     setIsLoading(true);
@@ -125,6 +145,8 @@ const InterviewSession: React.FC = () => {
   };
 
   const handleEndInterview = () => {
+    // Stop any ongoing speech when ending the interview
+    cancelSpeech();
     endCurrentSession();
     navigate('/results');
   };
@@ -138,6 +160,10 @@ const InterviewSession: React.FC = () => {
 
   const handleRecordingComplete = (url: string) => {
     saveRecording(url);
+  };
+
+  const handleLiveRecordingToggle = (isRecording: boolean) => {
+    setIsLiveRecording(isRecording);
   };
 
   if (!currentSession) return null;
@@ -238,8 +264,11 @@ const InterviewSession: React.FC = () => {
       <Separator orientation="vertical" className="hidden md:block" />
       
       <div className="md:w-1/3 p-4 border-t md:border-t-0 md:border-l">
-        <h2 className="text-lg font-medium mb-4">Interview Recording</h2>
-        <VideoRecorder onRecordingComplete={handleRecordingComplete} />
+        <h2 className="text-lg font-medium mb-4">Live Interview Recording</h2>
+        <VideoRecorder 
+          onRecordingComplete={handleRecordingComplete} 
+          onRecordingStateChange={handleLiveRecordingToggle}
+        />
       </div>
     </div>
   );

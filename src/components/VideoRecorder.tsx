@@ -6,9 +6,13 @@ import { toast } from '@/components/ui/use-toast';
 
 interface VideoRecorderProps {
   onRecordingComplete: (url: string) => void;
+  onRecordingStateChange?: (isRecording: boolean) => void;
 }
 
-const VideoRecorder: React.FC<VideoRecorderProps> = ({ onRecordingComplete }) => {
+const VideoRecorder: React.FC<VideoRecorderProps> = ({ 
+  onRecordingComplete,
+  onRecordingStateChange 
+}) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -78,9 +82,15 @@ const VideoRecorder: React.FC<VideoRecorderProps> = ({ onRecordingComplete }) =>
         onRecordingComplete(url);
       };
       
-      mediaRecorder.start();
+      // Set to record data every 1 second (to enable live recording)
+      mediaRecorder.start(1000);
       setIsRecording(true);
       setElapsedTime(0);
+      
+      // Notify parent component of recording state change
+      if (onRecordingStateChange) {
+        onRecordingStateChange(true);
+      }
       
       // Start timer
       timerRef.current = setInterval(() => {
@@ -89,7 +99,7 @@ const VideoRecorder: React.FC<VideoRecorderProps> = ({ onRecordingComplete }) =>
       
       toast({
         title: "Recording started",
-        description: "Your interview is now being recorded."
+        description: "Your interview is now being recorded live."
       });
     } catch (error) {
       console.error('Error starting recording:', error);
@@ -112,6 +122,12 @@ const VideoRecorder: React.FC<VideoRecorderProps> = ({ onRecordingComplete }) =>
     }
     
     setIsRecording(false);
+    
+    // Notify parent component of recording state change
+    if (onRecordingStateChange) {
+      onRecordingStateChange(false);
+    }
+    
     toast({
       title: "Recording stopped",
       description: "Your interview recording has been saved."
@@ -157,6 +173,12 @@ const VideoRecorder: React.FC<VideoRecorderProps> = ({ onRecordingComplete }) =>
           <div className="absolute top-2 right-2 flex items-center bg-black bg-opacity-50 text-white px-2 py-1 rounded-md">
             <Circle className="h-3 w-3 text-red-500 animate-pulse mr-2" />
             <span>{formatTime(elapsedTime)}</span>
+          </div>
+        )}
+
+        {isRecording && (
+          <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded-md">
+            <span className="text-xs">Live Recording</span>
           </div>
         )}
       </div>
