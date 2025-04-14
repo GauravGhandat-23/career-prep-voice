@@ -52,7 +52,6 @@ declare global {
   interface Window {
     webkitSpeechRecognition: any;
     SpeechRecognition: any;
-    speechSynthesis: SpeechSynthesis;
     SpeechSynthesisUtterance: typeof SpeechSynthesisUtterance;
   }
 }
