@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,12 +22,15 @@ const InterviewSetup: React.FC = () => {
   const [selectedIndustry, setSelectedIndustry] = useState<Industry | null>(null);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [commandKey, setCommandKey] = useState(0); // Add key to force re-render when needed
 
   const handleIndustryChange = (industryId: string) => {
     const industry = industries.find(i => i.id === industryId) || null;
     setSelectedIndustry(industry);
     setSelectedRole(null);
     setSearchQuery('');
+    // Force re-render of Command component when industry changes
+    setCommandKey(prev => prev + 1);
   };
 
   const handleRoleSelect = (role: Role) => {
@@ -97,7 +100,8 @@ const InterviewSetup: React.FC = () => {
         <div className="space-y-2">
           <label className="text-sm font-medium">Role</label>
           <div className="relative">
-            <Command className="rounded-lg border shadow-md">
+            {/* Using key to force re-render when industry changes */}
+            <Command key={commandKey} className="rounded-lg border shadow-md">
               <div className="flex items-center border-b px-3">
                 <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
                 <CommandInput 
@@ -110,8 +114,8 @@ const InterviewSetup: React.FC = () => {
               </div>
               <CommandEmpty>No roles found.</CommandEmpty>
               {/* Always render CommandGroup even when filteredRoles is empty */}
-              <CommandGroup>
-                {filteredRoles.map((role) => (
+              <CommandGroup className="overflow-hidden overflow-y-auto max-h-52">
+                {Array.isArray(filteredRoles) && filteredRoles.map((role) => (
                   <CommandItem 
                     key={role.id} 
                     onSelect={() => handleRoleSelect(role)}
