@@ -35,7 +35,8 @@ const InterviewSetup: React.FC = () => {
     setSearchQuery('');
   };
 
-  const availableRoles = selectedIndustry 
+  // Make sure we always have an array, even if it's empty
+  const availableRoles = selectedIndustry && rolesByIndustry[selectedIndustry.id] 
     ? rolesByIndustry[selectedIndustry.id] 
     : [];
 
@@ -108,6 +109,7 @@ const InterviewSetup: React.FC = () => {
                 />
               </div>
               <CommandEmpty>No roles found.</CommandEmpty>
+              {/* Always render CommandGroup even when filteredRoles is empty */}
               <CommandGroup>
                 {filteredRoles.map((role) => (
                   <CommandItem 
