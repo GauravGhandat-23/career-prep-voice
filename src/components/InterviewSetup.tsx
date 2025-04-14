@@ -13,6 +13,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command";
 import { Search } from "lucide-react";
 
@@ -22,7 +23,31 @@ const InterviewSetup: React.FC = () => {
   const [selectedIndustry, setSelectedIndustry] = useState<Industry | null>(null);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [commandKey, setCommandKey] = useState(0); // Add key to force re-render when needed
+  const [commandKey, setCommandKey] = useState(0); // Key to force re-render when needed
+  const [availableRoles, setAvailableRoles] = useState<Role[]>([]); // Initialize with empty array
+  const [filteredRoles, setFilteredRoles] = useState<Role[]>([]); // Initialize with empty array
+
+  // Update availableRoles when industry changes
+  useEffect(() => {
+    if (selectedIndustry && rolesByIndustry[selectedIndustry.id]) {
+      setAvailableRoles(rolesByIndustry[selectedIndustry.id]);
+    } else {
+      setAvailableRoles([]);
+    }
+  }, [selectedIndustry, rolesByIndustry]);
+
+  // Update filteredRoles when availableRoles or searchQuery changes
+  useEffect(() => {
+    if (searchQuery) {
+      setFilteredRoles(
+        availableRoles.filter(role => 
+          role.name.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      );
+    } else {
+      setFilteredRoles(availableRoles);
+    }
+  }, [availableRoles, searchQuery]);
 
   const handleIndustryChange = (industryId: string) => {
     const industry = industries.find(i => i.id === industryId) || null;
@@ -37,17 +62,6 @@ const InterviewSetup: React.FC = () => {
     setSelectedRole(role);
     setSearchQuery('');
   };
-
-  // Make sure we always have an array, even if it's empty
-  const availableRoles = selectedIndustry && rolesByIndustry[selectedIndustry.id] 
-    ? rolesByIndustry[selectedIndustry.id] 
-    : [];
-
-  const filteredRoles = searchQuery 
-    ? availableRoles.filter(role => 
-        role.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : availableRoles;
 
   const startInterview = () => {
     if (!selectedIndustry || !selectedRole) {
@@ -112,19 +126,20 @@ const InterviewSetup: React.FC = () => {
                   className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none"
                 />
               </div>
-              <CommandEmpty>No roles found.</CommandEmpty>
-              {/* Always render CommandGroup even when filteredRoles is empty */}
-              <CommandGroup className="overflow-hidden overflow-y-auto max-h-52">
-                {Array.isArray(filteredRoles) && filteredRoles.map((role) => (
-                  <CommandItem 
-                    key={role.id} 
-                    onSelect={() => handleRoleSelect(role)}
-                    className={`cursor-pointer ${selectedRole?.id === role.id ? 'bg-accent text-accent-foreground' : ''}`}
-                  >
-                    {role.name}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
+              <CommandList>
+                <CommandEmpty>No roles found.</CommandEmpty>
+                <CommandGroup className="overflow-hidden overflow-y-auto max-h-52">
+                  {filteredRoles.map((role) => (
+                    <CommandItem 
+                      key={role.id} 
+                      onSelect={() => handleRoleSelect(role)}
+                      className={`cursor-pointer ${selectedRole?.id === role.id ? 'bg-accent text-accent-foreground' : ''}`}
+                    >
+                      {role.name}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
             </Command>
           </div>
         </div>
