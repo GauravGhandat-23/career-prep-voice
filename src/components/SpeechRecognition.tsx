@@ -15,26 +15,31 @@ const SpeechRecognition: React.FC<SpeechRecognitionProps> = ({ onTranscript, dis
 
   const setupSpeechRecognition = useCallback(() => {
     try {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) {
+      // Fix: Check for both standard and webkit prefixed API
+      const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+      
+      if (!SpeechRecognitionAPI) {
         throw new Error('Speech recognition not supported in this browser');
       }
       
-      const recognitionInstance = new SpeechRecognition();
+      const recognitionInstance = new SpeechRecognitionAPI();
       recognitionInstance.continuous = true;
       recognitionInstance.interimResults = true;
       recognitionInstance.lang = 'en-US';
       
       recognitionInstance.onstart = () => {
+        console.log('Speech recognition started');
         setIsListening(true);
       };
       
       recognitionInstance.onresult = (event: any) => {
+        console.log('Speech recognition result received', event);
         const transcript = Array.from(event.results)
           .map((result: any) => result[0])
           .map((result) => result.transcript)
           .join('');
           
+        console.log('Transcript:', transcript);
         onTranscript(transcript);
       };
       
@@ -49,10 +54,12 @@ const SpeechRecognition: React.FC<SpeechRecognitionProps> = ({ onTranscript, dis
       };
       
       recognitionInstance.onend = () => {
+        console.log('Speech recognition ended');
         setIsListening(false);
       };
       
       setRecognition(recognitionInstance);
+      return recognitionInstance;
     } catch (error) {
       console.error('Speech recognition setup failed:', error);
       toast({
@@ -60,34 +67,51 @@ const SpeechRecognition: React.FC<SpeechRecognitionProps> = ({ onTranscript, dis
         description: "Speech recognition is not supported in your browser.",
         variant: "destructive"
       });
+      return null;
     }
   }, [onTranscript]);
 
   useEffect(() => {
-    setupSpeechRecognition();
+    // Initialize speech recognition on component mount
+    const recognitionInstance = setupSpeechRecognition();
     
     return () => {
-      if (recognition) {
+      if (recognitionInstance) {
         try {
-          recognition.stop();
+          recognitionInstance.stop();
         } catch (error) {
           console.error('Error stopping recognition:', error);
         }
       }
     };
-  }, [setupSpeechRecognition, recognition]);
+  }, [setupSpeechRecognition]);
 
   const toggleListening = useCallback(() => {
     if (!recognition) {
-      setupSpeechRecognition();
+      const newRecognition = setupSpeechRecognition();
+      if (newRecognition) {
+        try {
+          newRecognition.start();
+        } catch (error) {
+          console.error('Error starting recognition:', error);
+        }
+      }
       return;
     }
     
     if (isListening) {
-      recognition.stop();
-      setIsListening(false);
+      try {
+        recognition.stop();
+        setIsListening(false);
+      } catch (error) {
+        console.error('Error stopping recognition:', error);
+        // If an error occurs when stopping, reset the recognition instance
+        setRecognition(null);
+        setIsListening(false);
+      }
     } else {
       try {
+        // Some browsers require recreating the recognition instance
         recognition.start();
         setIsListening(true);
       } catch (error) {
@@ -97,6 +121,16 @@ const SpeechRecognition: React.FC<SpeechRecognitionProps> = ({ onTranscript, dis
           description: "Failed to start speech recognition. Please try again.",
           variant: "destructive"
         });
+        
+        // Try to recreate the recognition instance
+        const newRecognition = setupSpeechRecognition();
+        if (newRecognition) {
+          try {
+            newRecognition.start();
+          } catch (innerError) {
+            console.error('Error starting new recognition instance:', innerError);
+          }
+        }
       }
     }
   }, [recognition, isListening, setupSpeechRecognition]);
@@ -108,6 +142,8 @@ const SpeechRecognition: React.FC<SpeechRecognitionProps> = ({ onTranscript, dis
       onClick={toggleListening}
       disabled={disabled}
       className={isListening ? "bg-primary text-white" : ""}
+      aria-label={isListening ? "Stop listening" : "Start listening"}
+      title={isListening ? "Stop listening" : "Start listening"}
     >
       {isListening ? <Mic className="h-5 w-5 animate-pulse" /> : <MicOff className="h-5 w-5" />}
     </Button>
