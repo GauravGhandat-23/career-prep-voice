@@ -7,25 +7,43 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/components/ui/use-toast';
 import { useInterview } from '@/context/InterviewContext';
 import { Industry, Role } from '../types';
+import { 
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import { Search } from "lucide-react";
 
 const InterviewSetup: React.FC = () => {
   const navigate = useNavigate();
   const { industries, rolesByIndustry, startNewSession, apiKeySettings } = useInterview();
   const [selectedIndustry, setSelectedIndustry] = useState<Industry | null>(null);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleIndustryChange = (industryId: string) => {
     const industry = industries.find(i => i.id === industryId) || null;
     setSelectedIndustry(industry);
     setSelectedRole(null);
+    setSearchQuery('');
   };
 
-  const handleRoleChange = (roleId: string) => {
-    if (!selectedIndustry) return;
-    
-    const role = rolesByIndustry[selectedIndustry.id].find(r => r.id === roleId) || null;
+  const handleRoleSelect = (role: Role) => {
     setSelectedRole(role);
+    setSearchQuery('');
   };
+
+  const availableRoles = selectedIndustry 
+    ? rolesByIndustry[selectedIndustry.id] 
+    : [];
+
+  const filteredRoles = searchQuery 
+    ? availableRoles.filter(role => 
+        role.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : availableRoles;
 
   const startInterview = () => {
     if (!selectedIndustry || !selectedRole) {
@@ -77,21 +95,32 @@ const InterviewSetup: React.FC = () => {
         
         <div className="space-y-2">
           <label className="text-sm font-medium">Role</label>
-          <Select 
-            onValueChange={handleRoleChange}
-            disabled={!selectedIndustry}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={selectedIndustry ? "Select a role" : "Select an industry first"} />
-            </SelectTrigger>
-            <SelectContent>
-              {selectedIndustry && rolesByIndustry[selectedIndustry.id].map((role) => (
-                <SelectItem key={role.id} value={role.id}>
-                  {role.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="relative">
+            <Command className="rounded-lg border shadow-md">
+              <div className="flex items-center border-b px-3">
+                <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                <CommandInput 
+                  placeholder={selectedIndustry ? "Search for a role..." : "Select an industry first"}
+                  disabled={!selectedIndustry}
+                  value={searchQuery}
+                  onValueChange={setSearchQuery}
+                  className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none"
+                />
+              </div>
+              <CommandEmpty>No roles found.</CommandEmpty>
+              <CommandGroup>
+                {filteredRoles.map((role) => (
+                  <CommandItem 
+                    key={role.id} 
+                    onSelect={() => handleRoleSelect(role)}
+                    className={`cursor-pointer ${selectedRole?.id === role.id ? 'bg-accent text-accent-foreground' : ''}`}
+                  >
+                    {role.name}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </Command>
+          </div>
         </div>
       </CardContent>
       <CardFooter>

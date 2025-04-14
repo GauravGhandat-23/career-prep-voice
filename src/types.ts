@@ -50,8 +50,8 @@ export interface ApiKeySettings {
 // Add TypeScript declarations for Web Speech API
 declare global {
   interface Window {
-    SpeechRecognition: typeof SpeechRecognition;
-    webkitSpeechRecognition: typeof SpeechRecognition;
+    webkitSpeechRecognition: any;
+    SpeechRecognition: any;
     speechSynthesis: SpeechSynthesis;
     SpeechSynthesisUtterance: typeof SpeechSynthesisUtterance;
   }
